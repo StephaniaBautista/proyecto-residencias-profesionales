@@ -1,0 +1,82 @@
+{
+  "version": "RA-2026.2-v1",
+  "estado": "experimental",
+  "vigencia_desde": "2026-08-24",
+  "vigencia_hasta": null,
+  "aprobada_por": null,
+  "nota": "Catálogo experimental de reglas RA-01 a RA-08 tomado de la especificación técnica del prototipo. No son criterios oficiales del TecNM ni de ITTLA; requieren aprobación institucional documentada antes de usarse con expedientes reales.",
+  "reglas": [
+    {
+      "codigo": "RA-01",
+      "prioridad": 10,
+      "nivel": "verde",
+      "titulo": "Todas las asignaturas evaluadas acreditadas",
+      "descripcion": "El semestre inmediato anterior no tiene asignaturas no acreditadas ni datos faltantes.",
+      "condicion": { "tipo": "todas_acreditadas_anterior" },
+      "accion": "Mantener el seguimiento ordinario del periodo."
+    },
+    {
+      "codigo": "RA-02",
+      "prioridad": 40,
+      "nivel": "amarillo",
+      "titulo": "Una asignatura no acreditada en el semestre anterior",
+      "descripcion": "Hay exactamente una asignatura no acreditada en el corte de referencia.",
+      "condicion": { "tipo": "no_acreditadas_anterior", "exacto": 1 },
+      "accion": "Sugerir asesoría académica y registrar un acuerdo de seguimiento."
+    },
+    {
+      "codigo": "RA-03",
+      "prioridad": 50,
+      "nivel": "amarillo",
+      "titulo": "Dos asignaturas no acreditadas en el semestre anterior",
+      "descripcion": "Hay exactamente dos asignaturas no acreditadas en el corte de referencia.",
+      "condicion": { "tipo": "no_acreditadas_anterior", "exacto": 2 },
+      "accion": "Agendar entrevista tutorial y plan de recuperación."
+    },
+    {
+      "codigo": "RA-04",
+      "prioridad": 80,
+      "nivel": "rojo",
+      "titulo": "Tres o más asignaturas no acreditadas en el semestre anterior",
+      "descripcion": "Hay tres o más asignaturas no acreditadas en el corte de referencia.",
+      "condicion": { "tipo": "no_acreditadas_anterior", "minimo": 3 },
+      "accion": "Revisión tutorial prioritaria y canalización a asesoría disciplinar."
+    },
+    {
+      "codigo": "RA-05",
+      "prioridad": 60,
+      "nivel": "amarillo",
+      "titulo": "Dos o más evaluaciones parciales no acreditadas en una asignatura",
+      "descripcion": "Alguna asignatura del periodo actual acumula dos o más parciales exigibles no acreditados.",
+      "condicion": { "tipo": "parciales_no_acreditados_misma_asignatura", "minimo": 2 },
+      "accion": "Revisar avance por unidad y sugerir asesoría académica antes del corte final."
+    },
+    {
+      "codigo": "RA-06",
+      "prioridad": 90,
+      "nivel": "rojo",
+      "titulo": "Curso especial registrado oficialmente",
+      "descripcion": "Existe un curso especial oficialmente registrado en el periodo; la clasificación es provisional.",
+      "condicion": { "tipo": "curso_especial_registrado" },
+      "accion": "Revisión de trayectoria y de los lineamientos aplicables; validar el registro con Servicios Escolares."
+    },
+    {
+      "codigo": "RA-07",
+      "prioridad": 100,
+      "nivel": "informacion_insuficiente",
+      "titulo": "Faltan datos indispensables para el corte evaluado",
+      "descripcion": "No hay corte de referencia o faltan calificaciones exigibles. No se presume acreditación ni reprobación.",
+      "condicion": { "tipo": "datos_faltantes" },
+      "accion": "Verificar la captura de datos con el área responsable antes de clasificar."
+    },
+    {
+      "codigo": "RA-08",
+      "prioridad": 20,
+      "nivel": "verde",
+      "titulo": "Antecedentes de reprobación con desempeño actual acreditado",
+      "descripcion": "Hay antecedentes históricos de reprobación, pero el corte de referencia y el avance actual están acreditados. No se emite alerta automática.",
+      "condicion": { "tipo": "antecedente_reprobacion_desempeno_actual_acreditado" },
+      "accion": "Seguimiento de antecedentes sin alerta automática; conservar la trazabilidad."
+    }
+  ]
+}

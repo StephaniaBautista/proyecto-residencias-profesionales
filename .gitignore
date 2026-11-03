@@ -10,3 +10,8 @@ coverage/
 .tmp-pglite/
 work/
 backend/corpus/*.txt
+
+.local-pg/
+
+__pycache__/
+*.pyc

@@ -7,13 +7,14 @@ import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './auth/roles.guard';
 import { BaseDatosModule } from './base-datos/base-datos.module';
 import { FiltroErrores } from './comun/filtro-errores';
+import { ContextoController } from './contexto/contexto.controller';
 import { RagModule } from './rag/rag.module';
 import { SaludController } from './salud.controller';
 import { TutoradosModule } from './tutorados/tutorados.module';
 
 @Module({
   imports: [BaseDatosModule, AuthModule, TutoradosModule, AlertasModule, RagModule, AdminModule],
-  controllers: [SaludController],
+  controllers: [SaludController, ContextoController],
   providers: [
     { provide: APP_FILTER, useClass: FiltroErrores },
     { provide: APP_GUARD, useClass: AuthGuard },

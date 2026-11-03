@@ -11,6 +11,15 @@ type DocumentoProcesado = {
   archivo: string;
   titulo: string;
   emisor: string;
+  version: string | null;
+  fecha: string | null;
+  institucion_aplicable: string | null;
+  vigencia_verificada: boolean;
+  permisos: string;
+  paginas: number;
+  url: string | null;
+  aprobada_por: string | null;
+  aprobada_en: string | null;
   fragmentos: Array<{ pagina: number; texto: string }>;
   vectores: number[][];
 };
@@ -23,7 +32,7 @@ async function main() {
   const dryRun = process.argv.includes('--dry-run');
 
   for (const documento of documentos) {
-    console.log(`${documento.archivo}: ${documento.fragmentos.length} fragmentos listos.`);
+    console.log(resumenDocumento(documento));
   }
   if (dryRun) {
     console.log('Simulación terminada: no se llamaron servicios externos ni se escribió en la base.');
@@ -58,8 +67,40 @@ async function main() {
       for (const documento of documentos) {
         await tx`delete from documento_rag where nombre_archivo = ${documento.archivo}`;
         const docs = await tx<{ id: number }[]>`
-          insert into documento_rag (titulo, emisor, nombre_archivo, vigente, fragmentos, ingestado_en)
-          values (${documento.titulo}, ${documento.emisor}, ${documento.archivo}, true, ${documento.fragmentos.length}, now())
+          insert into documento_rag (
+            titulo,
+            emisor,
+            nombre_archivo,
+            vigente,
+            fragmentos,
+            ingestado_en,
+            version,
+            fecha_documento,
+            institucion_aplicable,
+            vigencia_verificada,
+            permisos,
+            paginas,
+            url,
+            aprobada_por,
+            aprobada_en
+          )
+          values (
+            ${documento.titulo},
+            ${documento.emisor},
+            ${documento.archivo},
+            true,
+            ${documento.fragmentos.length},
+            now(),
+            ${documento.version},
+            ${documento.fecha},
+            ${documento.institucion_aplicable},
+            ${documento.vigencia_verificada},
+            ${documento.permisos},
+            ${documento.paginas},
+            ${documento.url},
+            ${documento.aprobada_por},
+            ${documento.aprobada_en}
+          )
           returning id
         `;
         const documentoId = docs[0]?.id;
@@ -81,12 +122,20 @@ async function main() {
             )
           `;
         }
+        console.log(`${documento.archivo}: ${documento.fragmentos.length} fragmentos indexados (${documento.paginas} páginas).`);
       }
     });
   } finally {
     await sql.end({ timeout: 5 });
   }
   console.log(`Corpus listo: ${documentos.length} fuentes habilitadas.`);
+}
+
+function resumenDocumento(documento: DocumentoProcesado): string {
+  const vigencia = documento.vigencia_verificada ? 'verificada' : 'no verificada para ITTLA';
+  const fecha = documento.fecha ?? 'sin fecha';
+  const version = documento.version ?? 'sin versión';
+  return `${documento.archivo}: ${documento.fragmentos.length} fragmentos · ${documento.paginas} páginas · versión ${version} · fecha ${fecha} · vigencia ${vigencia} · permisos: ${documento.permisos}`;
 }
 
 async function extraerDocumentos(
@@ -110,9 +159,21 @@ async function extraerDocumentos(
       archivo: fuente.archivo,
       titulo: fuente.titulo,
       emisor: fuente.emisor,
+      version: fuente.version,
+      fecha: fuente.fecha,
+      institucion_aplicable: fuente.institucion_aplicable,
+      vigencia_verificada: fuente.vigencia_verificada,
+      permisos: fuente.permisos,
+      paginas: fragmentos.reduce((maximo, fragmento) => Math.max(maximo, fragmento.pagina), 0),
+      url: fuente.url,
+      aprobada_por: fuente.aprobada_por,
+      aprobada_en: fuente.aprobada_en,
       fragmentos,
       vectores: [],
     });
+    console.log(
+      `${fuente.archivo}: ${paginas.length} páginas extraídas, ${fragmentos.length} fragmentos preparados.`,
+    );
   }
   return documentos;
 }

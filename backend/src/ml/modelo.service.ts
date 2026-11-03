@@ -1,23 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { BaseDatos } from '../base-datos/base-datos.service';
-import { registrarBitacora } from '../comun/bitacora';
-import { numero } from '../comun/fechas';
+import { institucionActiva } from '../comun/periodo';
 import type { UsuarioSesion } from '../comun/usuario';
-import type { ClaseRiesgo } from './etiqueta';
-import {
-  esModeloArbol,
-  entrenarComparacion,
-  predecirArbol,
-  type ClaveRasgo,
-  type ComparacionModelos,
-  type FilaModelo,
-  type ModeloArbol,
-} from './modelo';
+import type { Sql } from '../base-datos/conexion';
+import { registrarEntrenamiento } from './entrenamiento';
+import { esModeloArbol, predecirArbol, type ClaveRasgo, type ModeloArbol } from './modelo';
 
-const LEYENDA =
+const LEYENDA_BASE =
   'Sugerencia de apoyo. No cambia el color del semáforo y requiere revisión humana.';
-
-let entrenando = false;
 
 @Injectable()
 export class ModeloService {
@@ -29,13 +19,19 @@ export class ModeloService {
         id: number;
         version: string;
         algoritmo: string;
+        tipo: 'predictivo' | 'explicador';
         motivo: string;
+        etiqueta_definicion: string | null;
         metricas: unknown;
         modelo: unknown;
+        registros_entrenamiento: number | null;
+        registros_prueba: number | null;
+        advertencia: string | null;
         entrenado_en: Date;
       }>
     >`
-      select id, version, algoritmo, motivo, metricas, modelo, entrenado_en
+      select id, version, algoritmo, tipo, motivo, etiqueta_definicion, metricas, modelo,
+             registros_entrenamiento, registros_prueba, advertencia, entrenado_en
       from modelo_riesgo
       order by entrenado_en desc
       limit 1
@@ -52,91 +48,76 @@ export class ModeloService {
       disponible: true as const,
       version: fila.version,
       algoritmo: fila.algoritmo,
+      tipo: fila.tipo,
       motivo: fila.motivo,
+      etiqueta_definicion: fila.etiqueta_definicion,
       metricas: fila.metricas,
+      registros_entrenamiento: fila.registros_entrenamiento,
+      registros_prueba: fila.registros_prueba,
+      advertencia: fila.advertencia,
       entrenado_en: fila.entrenado_en,
+      leyenda: this.leyenda(fila.tipo, fila.advertencia),
     };
   }
 
   async predecir(fila: Record<ClaveRasgo, number>) {
     const vigente = await this.vigente();
     if (!vigente || !esModeloArbol(vigente.modelo)) {
-      return { disponible: false as const, leyenda: LEYENDA };
+      return { disponible: false as const, leyenda: LEYENDA_BASE };
     }
     const prediccion = predecirArbol(vigente.modelo as ModeloArbol, fila);
     return {
       disponible: true as const,
+      tipo: vigente.tipo,
+      version: vigente.version,
       algoritmo: 'arbol' as const,
       riesgo: prediccion.clase,
       probabilidad: prediccion.probabilidad,
       reglas: prediccion.reglas,
-      leyenda: LEYENDA,
+      advertencia: vigente.advertencia,
+      leyenda: this.leyenda(vigente.tipo, vigente.advertencia),
     };
   }
 
   async entrenar(usuario: UsuarioSesion | null) {
-    if (entrenando) {
-      throw new BadRequestException('Ya hay un entrenamiento en curso.');
-    }
-    entrenando = true;
+    const institucion = await institucionActiva(this.db.sql);
     try {
-      const filas = await this.cargarFilas();
-      let comparacion: ComparacionModelos;
-      try {
-        comparacion = entrenarComparacion(filas, 42);
-      } catch (error) {
-        throw new BadRequestException(error instanceof Error ? error.message : 'No se pudo entrenar el modelo.');
-      }
-      const version = `arbol-${new Date().toISOString().slice(0, 16)}`;
-      const guardado = await this.db.sql<{ id: number }[]>`
-        insert into modelo_riesgo (version, algoritmo, motivo, metricas, modelo)
-        values (
-          ${version},
-          ${comparacion.algoritmo},
-          ${comparacion.motivo},
-          ${this.db.sql.json(comparacion.metricas)},
-          ${this.db.sql.json(comparacion.modelo)}
-        )
-        returning id
-      `;
-      await registrarBitacora(this.db.sql, usuario?.id ?? null, 'entrenar_modelo', 'modelo_riesgo', guardado[0]?.id ?? null, {
-        version,
-        exactitud_arbol: comparacion.metricas.arbol.exactitud,
+      return await this.db.sql.begin(async (tx) => {
+        const bloqueo = await tx<{ ok: boolean }[]>`
+          select pg_try_advisory_xact_lock(hashtext('apoyo_tutorial_modelo_riesgo')) as ok
+        `;
+        if (!bloqueo[0]?.ok) {
+          throw new BadRequestException('Ya hay un entrenamiento en curso.');
+        }
+        const resultado = await registrarEntrenamiento(tx as unknown as Sql, {
+          institucionId: institucion.id,
+          usuarioId: usuario?.id ?? null,
+        });
+        return {
+          disponible: true as const,
+          version: resultado.version,
+          tipo: resultado.tipo,
+          algoritmo: resultado.algoritmo,
+          etiqueta_definicion: resultado.etiqueta_definicion,
+          advertencia: resultado.advertencia,
+          registros_entrenamiento: resultado.registros_entrenamiento,
+          registros_prueba: resultado.registros_prueba,
+          metricas: resultado.comparacion.metricas,
+        };
       });
-      return this.resumen();
-    } finally {
-      entrenando = false;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'No se pudo entrenar el modelo.',
+      );
     }
   }
 
-  private async cargarFilas(): Promise<FilaModelo[]> {
-    const filas = await this.db.sql<
-      Array<Record<ClaveRasgo, unknown> & { riesgo_objetivo: ClaseRiesgo }>
-    >`
-      select
-        t.porcentaje_asistencia::float8 as porcentaje_asistencia,
-        t.promedio_periodo::float8 as promedio_periodo,
-        t.materias_reprobadas,
-        t.creditos_aprobados::float8 as creditos_aprobados,
-        t.avance_curricular::float8 as avance_curricular,
-        t.acuerdos_vencidos,
-        e.semestre,
-        t.riesgo_objetivo
-      from trayectoria_periodo t
-      join estudiante e on e.id = t.estudiante_id
-    `;
-    if (filas.length < 30) {
-      throw new BadRequestException('No hay suficientes registros sintéticos para entrenar.');
-    }
-    return filas.map((fila) => ({
-      porcentaje_asistencia: numero(fila.porcentaje_asistencia),
-      promedio_periodo: numero(fila.promedio_periodo),
-      materias_reprobadas: numero(fila.materias_reprobadas),
-      creditos_aprobados: numero(fila.creditos_aprobados),
-      avance_curricular: numero(fila.avance_curricular),
-      acuerdos_vencidos: numero(fila.acuerdos_vencidos),
-      semestre: numero(fila.semestre),
-      riesgo_objetivo: fila.riesgo_objetivo,
-    }));
+  private leyenda(tipo: 'predictivo' | 'explicador', advertencia: string | null): string {
+    const base =
+      tipo === 'predictivo'
+        ? 'Sugerencia de apoyo basada en el desempeño observado del siguiente periodo. No cambia el color del semáforo y requiere revisión humana.'
+        : 'Explicador de las reglas del semáforo (demostración). No es una predicción de riesgo ni cambia el color; requiere revisión humana.';
+    return advertencia ? `${base} ${advertencia}` : base;
   }
 }

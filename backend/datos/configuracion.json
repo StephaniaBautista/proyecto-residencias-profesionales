@@ -1,0 +1,102 @@
+{
+  "version": "1.0",
+  "nota": "Configuración editable del prototipo. Los valores se cargan a la tabla configuracion con npm run seed.",
+  "valores": [
+    {
+      "clave": "prototipo",
+      "valor": true,
+      "descripcion": "Marca el entorno como prototipo con datos sintéticos.",
+      "visible_ui": true
+    },
+    {
+      "clave": "banner",
+      "valor": "Prototipo con datos sintéticos · Reglas RA-01 a RA-08 experimentales, no aprobadas por ITTLA",
+      "descripcion": "Aviso persistente que la interfaz muestra en todas las pantallas.",
+      "visible_ui": true
+    },
+    {
+      "clave": "version_reglas",
+      "valor": "RA-2026.2-v1",
+      "descripcion": "Versión del catálogo de reglas del semáforo en uso.",
+      "visible_ui": true
+    },
+    {
+      "clave": "leyenda_semaforo",
+      "valor": "El color se calcula con reglas versionadas y explicables. No lo decide el modelo.",
+      "descripcion": "Leyenda del semáforo que muestra la interfaz.",
+      "visible_ui": true
+    },
+    {
+      "clave": "leyenda_modelo",
+      "valor": "El modelo sugiere apoyo y no cambia el color del semáforo. Requiere revisión humana.",
+      "descripcion": "Leyenda del modelo de riesgo que muestra la interfaz.",
+      "visible_ui": true
+    },
+    {
+      "clave": "rag_top_k",
+      "valor": 4,
+      "descripcion": "Número de fragmentos normativos recuperados por consulta.",
+      "visible_ui": false
+    },
+    {
+      "clave": "limite_tablero_casos",
+      "valor": 12,
+      "descripcion": "Casos prioritarios que muestra el tablero.",
+      "visible_ui": false
+    },
+    {
+      "clave": "limite_tablero_proximas",
+      "valor": 8,
+      "descripcion": "Próximas revisiones que muestra el tablero.",
+      "visible_ui": false
+    },
+    {
+      "clave": "limite_bitacora",
+      "valor": 40,
+      "descripcion": "Registros de bitácora que muestra la vista técnica.",
+      "visible_ui": false
+    },
+    {
+      "clave": "limite_consultas",
+      "valor": 12,
+      "descripcion": "Consultas recientes que muestra el historial propio.",
+      "visible_ui": false
+    },
+    {
+      "clave": "tutorados_por_pagina",
+      "valor": 25,
+      "descripcion": "Tamaño de página por defecto del listado de tutorados.",
+      "visible_ui": false
+    },
+    {
+      "clave": "creditos_plan_estudios",
+      "valor": 210,
+      "descripcion": "Créditos del plan de estudios usado para calcular el avance curricular de los datos sintéticos.",
+      "visible_ui": false
+    },
+    {
+      "clave": "reglas_aprobadas",
+      "valor": false,
+      "descripcion": "Indica si las reglas del semáforo fueron aprobadas institucionalmente.",
+      "visible_ui": true
+    },
+    {
+      "clave": "datos_aprobados",
+      "valor": false,
+      "descripcion": "Indica si las fuentes y reglas fueron validadas por ITTLA para uso con expedientes reales.",
+      "visible_ui": true
+    },
+    {
+      "clave": "permitir_registro",
+      "valor": true,
+      "descripcion": "Habilita el registro público de cuentas de tutor. En producción institucional puede deshabilitarse para que sólo coordinación cree usuarios.",
+      "visible_ui": false
+    },
+    {
+      "clave": "recuperacion_habilitada",
+      "valor": true,
+      "descripcion": "Habilita la solicitud de restablecimiento de contraseña. En producción requiere un proveedor de correo para enviar el enlace.",
+      "visible_ui": false
+    }
+  ]
+}

@@ -1,99 +1,147 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api';
-import { Cargando, Fallo, Vacio } from '../components/Estados';
-import { fechaLegible } from '../texto';
+import { api, mensajeError } from '../api';
+import { Cargando, Fallo } from '../components/Estados';
+import { CabeceraTarjeta, EncabezadoPagina } from '../components/Pagina';
+import { useContexto } from '../contexto';
+import {
+  ETIQUETA_ALERTA_TIPO,
+  ETIQUETA_PRIORIDAD,
+  etiqueta,
+  fechaLegible,
+} from '../texto';
 
 type Alerta = {
-  id: number;
+  id: number | string;
   id_anonimo: string;
   grupo: string;
   tipo: string;
   mensaje: string;
   prioridad: string;
+  nivel_alerta?: string | null;
   creado_en: string;
 };
 
+type ListaAlertas = {
+  alertas: Alerta[];
+  total?: number;
+};
+
 export function Alertas() {
+  const { contexto, cargando: cargandoContexto, error: errorContexto, recargar } = useContexto();
+  const periodo = contexto?.periodo_activo ?? '';
   const [alertas, setAlertas] = useState<Alerta[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
   const [intento, setIntento] = useState(0);
-  const [ocupada, setOcupada] = useState<number | null>(null);
+  const [ocupada, setOcupada] = useState<number | string | null>(null);
 
   useEffect(() => {
+    if (!periodo) return;
     let vivo = true;
-    api<{ alertas: Alerta[] }>('/api/alertas')
+    setError('');
+    const consulta = new URLSearchParams({ periodo });
+    api<ListaAlertas>(`/api/alertas?${consulta.toString()}`)
       .then((datos) => {
-        if (vivo) setAlertas(datos.alertas);
+        if (!vivo) return;
+        setAlertas(datos.alertas);
+        setTotal(datos.total ?? datos.alertas.length);
       })
       .catch((causa: unknown) => {
-        if (vivo) setError(causa instanceof Error ? causa.message : 'No se pudieron cargar las alertas.');
+        if (vivo) setError(mensajeError(causa, 'No se pudieron cargar las alertas.'));
       });
     return () => {
       vivo = false;
     };
-  }, [intento]);
+  }, [periodo, intento]);
 
-  async function atender(id: number) {
+  async function atender(id: number | string) {
     setOcupada(id);
+    setError('');
     try {
-      await api(`/api/alertas/${id}/atender`, { method: 'POST' });
+      await api(`/api/alertas/${encodeURIComponent(String(id))}/atender`, { method: 'POST' });
       setIntento((n) => n + 1);
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No se pudo atender la alerta.');
+      setError(mensajeError(causa, 'No se pudo atender la alerta.'));
     } finally {
       setOcupada(null);
     }
   }
 
+  const configError = Boolean(errorContexto) && !contexto;
+
   return (
     <>
-      <header className="encabezado-pagina">
-        <div>
-          <h1>Alertas</h1>
-          <p>Rojo sin revisión de asesoría, o una acción que vence en los próximos siete días.</p>
-        </div>
-      </header>
-      {error ? <Fallo mensaje={error} onReintentar={() => setIntento((n) => n + 1)} /> : null}
-      {!alertas && !error ? <Cargando texto="Cargando alertas…" /> : null}
-      {alertas && alertas.length === 0 ? <Vacio texto="No hay alertas pendientes." /> : null}
-      {alertas && alertas.length > 0 ? (
-        <div className="tabla-contenedor">
-          <table>
-            <thead>
-              <tr>
-                <th>Prioridad</th>
-                <th>Tutorado</th>
-                <th>Mensaje</th>
-                <th>Desde</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {alertas.map((alerta) => (
-                <tr key={alerta.id}>
-                  <td>{alerta.prioridad === 'alta' ? 'Alta' : 'Media'}</td>
-                  <td>
-                    <Link to={`/tutorados/${alerta.id_anonimo}`}>{alerta.id_anonimo}</Link>
-                    <div>{alerta.grupo}</div>
-                  </td>
-                  <td>{alerta.mensaje}</td>
-                  <td>{fechaLegible(alerta.creado_en)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="boton secundario oscuro"
-                      disabled={ocupada === alerta.id}
-                      onClick={() => void atender(alerta.id)}
-                    >
-                      {ocupada === alerta.id ? 'Guardando…' : 'Marcar atendida'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <EncabezadoPagina titulo="Alertas" subtitulo="Pendientes del periodo." />
+
+      {configError ? <Fallo mensaje={errorContexto} onReintentar={recargar} /> : null}
+      {error && !configError ? (
+        <Fallo mensaje={error} onReintentar={() => setIntento((n) => n + 1)} />
+      ) : null}
+      {!contexto && !configError && cargandoContexto ? (
+        <Cargando texto="Cargando configuración…" />
+      ) : null}
+      {contexto && !alertas && !error ? <Cargando texto="Cargando alertas…" /> : null}
+
+      {alertas ? (
+        <section className="tarjeta">
+          <CabeceraTarjeta
+            titulo="Pendientes"
+            detalle={total > 0 ? `${total} en total` : undefined}
+          />
+          {alertas.length === 0 ? (
+            <p className="estado-vacio">Sin alertas pendientes.</p>
+          ) : (
+            <div className="tabla-scroll">
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Estudiante</th>
+                    <th>Prioridad</th>
+                    <th>Fecha</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alertas.map((alerta) => (
+                    <tr key={alerta.id}>
+                      <td>{etiqueta(ETIQUETA_ALERTA_TIPO, alerta.tipo)}</td>
+                      <td>
+                        <Link
+                          className="enlace"
+                          to={`/estudiantes/${encodeURIComponent(alerta.id_anonimo)}${
+                            periodo ? `?periodo=${encodeURIComponent(periodo)}` : ''
+                          }`}
+                        >
+                          {alerta.id_anonimo}
+                        </Link>
+                        <span className="nota">{alerta.grupo}</span>
+                      </td>
+                      <td>
+                        <span className={`badge badge-${alerta.prioridad}`}>
+                          {etiqueta(ETIQUETA_PRIORIDAD, alerta.prioridad)}
+                        </span>
+                      </td>
+                      <td>{fechaLegible(alerta.creado_en)}</td>
+                      <td className="celda-accion">
+                        <button
+                          type="button"
+                          className="boton boton-secundario boton-pequeno"
+                          disabled={ocupada === alerta.id}
+                          aria-busy={ocupada === alerta.id}
+                          onClick={() => void atender(alerta.id)}
+                        >
+                          {ocupada === alerta.id ? 'Guardando…' : 'Atender'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       ) : null}
     </>
   );

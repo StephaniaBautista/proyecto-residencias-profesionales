@@ -1,14 +1,24 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { etiquetaRiesgo } from './etiqueta';
+import { DEFINICION_ETIQUETA, etiquetaObservada } from './etiqueta';
 import { calcularMetricas } from './metricas';
 import { entrenarComparacion, predecirArbol, type FilaModelo } from './modelo';
 
 describe('etiqueta y métricas', () => {
-  it('clasifica alto, medio y bajo con las reglas del plan técnico', () => {
-    assert.equal(etiquetaRiesgo({ porcentaje_asistencia: 61, promedio_periodo: 64, materias_reprobadas: 3 }), 'alto');
-    assert.equal(etiquetaRiesgo({ porcentaje_asistencia: 78, promedio_periodo: 80, materias_reprobadas: 1 }), 'medio');
-    assert.equal(etiquetaRiesgo({ porcentaje_asistencia: 95, promedio_periodo: 88, materias_reprobadas: 0 }), 'bajo');
+  it('clasifica el desempeño observado del periodo siguiente', () => {
+    assert.equal(
+      etiquetaObservada({ materias_reprobadas: 3, promedio_periodo: 64 }),
+      'alto',
+    );
+    assert.equal(
+      etiquetaObservada({ materias_reprobadas: 1, promedio_periodo: 80 }),
+      'medio',
+    );
+    assert.equal(
+      etiquetaObservada({ materias_reprobadas: 0, promedio_periodo: 88 }),
+      'bajo',
+    );
+    assert.match(DEFINICION_ETIQUETA, /periodo siguiente/);
   });
 
   it('arma la matriz de confusión', () => {

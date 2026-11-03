@@ -1,16 +1,30 @@
 {
-  "version": 1,
+  "version": 2,
   "fuentes": [
     {
       "archivo": "PROGRAMA_DE_TUTORIAS_TECNM.pdf",
       "titulo": "Programa de Tutorías del TecNM (2022; vigencia para ITTLA por validar)",
       "emisor": "Tecnológico Nacional de México; marco general",
+      "version": "2022",
+      "fecha": "2022-01-01",
+      "institucion_aplicable": "TecNM marco general",
+      "vigencia_verificada": false,
+      "permisos": "uso interno",
+      "url": null,
+      "aprobada_por": null,
       "habilitada": true
     },
     {
       "archivo": "MANUAL_DEL_TUTOR_SNIT_2013.pdf",
       "titulo": "Manual del Tutor del SNIT (2013; antecedente, vigencia para ITTLA por validar)",
       "emisor": "SNIT / TecNM; referencia histórica",
+      "version": "2013",
+      "fecha": "2013-02-01",
+      "institucion_aplicable": "SNIT referencia histórica",
+      "vigencia_verificada": false,
+      "permisos": "uso interno",
+      "url": null,
+      "aprobada_por": null,
       "habilitada": true
     }
   ]

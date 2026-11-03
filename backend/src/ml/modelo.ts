@@ -40,6 +40,11 @@ export type ModeloArbol = {
   raiz: Nodo;
 };
 
+export type LineaBase = {
+  clase: ClaseRiesgo;
+  exactitud: number;
+};
+
 export type ComparacionModelos = {
   algoritmo: 'arbol';
   motivo: string;
@@ -48,12 +53,17 @@ export type ComparacionModelos = {
     regresion_logistica: MetricasClasificacion;
     arbol: MetricasClasificacion;
     bosque: MetricasClasificacion;
+    linea_base: LineaBase;
   };
 };
 
 type Rng = () => number;
 
-export function entrenarComparacion(filas: FilaModelo[], semilla = 42): ComparacionModelos {
+export function entrenarComparacion(
+  filas: FilaModelo[],
+  semilla = 42,
+  opciones?: { prueba?: FilaModelo[] },
+): ComparacionModelos {
   if (filas.length < 30) {
     throw new Error('Se necesitan al menos 30 registros sintéticos para entrenar.');
   }
@@ -63,7 +73,12 @@ export function entrenarComparacion(filas: FilaModelo[], semilla = 42): Comparac
     }
   }
 
-  const { entrenamiento, prueba } = dividir(filas, semilla);
+  const { entrenamiento, prueba } = opciones?.prueba
+    ? { entrenamiento: filas, prueba: opciones.prueba }
+    : dividir(filas, semilla);
+  if (prueba.length === 0) {
+    throw new Error('El conjunto de prueba está vacío.');
+  }
   const logistica = entrenarLogistica(entrenamiento, semilla);
   const arbol = entrenarArbol(entrenamiento, 4, 6, 0);
   const bosque = entrenarBosque(entrenamiento, semilla);
@@ -81,6 +96,7 @@ export function entrenarComparacion(filas: FilaModelo[], semilla = 42): Comparac
       prueba.map((fila) => fila.riesgo_objetivo),
       prueba.map((fila) => predecirBosque(bosque, fila).clase),
     ),
+    linea_base: calcularLineaBase(entrenamiento, prueba),
   };
 
   return {
@@ -331,6 +347,17 @@ export function mulberry32(semilla: number): Rng {
 
 function formatearUmbral(valor: number): string {
   return Number.isInteger(valor) ? String(valor) : valor.toFixed(1);
+}
+
+function calcularLineaBase(entrenamiento: FilaModelo[], prueba: FilaModelo[]): LineaBase {
+  const conteo = Object.fromEntries(CLASES.map((clase) => [clase, 0])) as Record<ClaseRiesgo, number>;
+  for (const fila of entrenamiento) conteo[fila.riesgo_objetivo] += 1;
+  const clase = [...CLASES].sort((a, b) => conteo[b] - conteo[a] || CLASES.indexOf(a) - CLASES.indexOf(b))[0];
+  const aciertos = prueba.filter((fila) => fila.riesgo_objetivo === clase).length;
+  return {
+    clase,
+    exactitud: redondear(aciertos / Math.max(prueba.length, 1)),
+  };
 }
 
 function redondear(valor: number): number {

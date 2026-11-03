@@ -1,18 +1,35 @@
+import type { ReactNode } from 'react';
+
 export function Cargando({ texto }: { texto: string }) {
-  return <p role="status">{texto}</p>;
+  return (
+    <p className="estado-cargando" role="status">
+      {texto}
+    </p>
+  );
 }
 
-export function Fallo({ mensaje, onReintentar }: { mensaje: string; onReintentar: () => void }) {
+export function Fallo({
+  mensaje,
+  onReintentar,
+  children,
+}: {
+  mensaje: string;
+  onReintentar: () => void;
+  children?: ReactNode;
+}) {
   return (
-    <div className="aviso" role="alert">
+    <div className="estado-error" role="alert">
       <p>{mensaje}</p>
-      <button type="button" className="boton secundario oscuro" onClick={onReintentar}>
-        Reintentar
-      </button>
+      <div>
+        <button type="button" className="boton boton-secundario" onClick={onReintentar}>
+          Reintentar
+        </button>
+      </div>
+      {children}
     </div>
   );
 }
 
 export function Vacio({ texto }: { texto: string }) {
-  return <p className="aviso neutro">{texto}</p>;
+  return <p className="estado-vacio">{texto}</p>;
 }

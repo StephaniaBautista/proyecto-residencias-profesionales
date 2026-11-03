@@ -1,23 +1,19 @@
 export type ClaseRiesgo = 'bajo' | 'medio' | 'alto';
 
-export function etiquetaRiesgo(entrada: {
-  porcentaje_asistencia: number;
-  promedio_periodo: number;
+/**
+ * Etiqueta observada para entrenar el modelo: no se calcula con las mismas
+ * reglas del semáforo, sino con el desempeño real del periodo siguiente.
+ * Es la variable que el modelo intenta anticipar.
+ */
+export function etiquetaObservada(siguiente: {
   materias_reprobadas: number;
+  promedio_periodo: number;
 }): ClaseRiesgo {
-  if (
-    entrada.porcentaje_asistencia < 70 ||
-    entrada.promedio_periodo < 70 ||
-    entrada.materias_reprobadas >= 3
-  ) {
-    return 'alto';
-  }
-  if (
-    entrada.porcentaje_asistencia < 85 ||
-    entrada.promedio_periodo < 78 ||
-    entrada.materias_reprobadas >= 1
-  ) {
-    return 'medio';
-  }
+  if (siguiente.materias_reprobadas >= 3 || siguiente.promedio_periodo < 70) return 'alto';
+  if (siguiente.materias_reprobadas >= 1 || siguiente.promedio_periodo < 78) return 'medio';
   return 'bajo';
 }
+
+export const DEFINICION_ETIQUETA =
+  'Riesgo observado en el periodo siguiente: alto si reprueba 3+ asignaturas o su promedio baja de 70; ' +
+  'medio si reprueba al menos una o su promedio baja de 78; bajo en el resto de los casos.';

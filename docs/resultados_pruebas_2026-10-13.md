@@ -1,5 +1,7 @@
 # Registro de validación del prototipo
 
+> **Documento histórico.** Este corte corresponde a la versión anterior (150 registros sintéticos, reglas de puntos, 17 pruebas). El estado vigente está en [`resultados_pruebas_2026-10-27.md`](resultados_pruebas_2026-10-27.md).
+
 **Corte:** 13 de octubre de 2026  
 **Alcance:** prototipo local con datos sintéticos, especificación técnica y libro de casos de prueba aportados.
 

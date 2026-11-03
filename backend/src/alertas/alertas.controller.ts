@@ -22,9 +22,9 @@ export class AlertasController {
   }
 }
 
-function periodoValido(valor: string | undefined): string {
+function periodoValido(valor: string | undefined): string | undefined {
   const texto = textoOpcional(valor);
-  if (!texto) return '2026-1';
+  if (!texto) return undefined;
   const resultado = esquemaPeriodo.safeParse(texto);
   if (!resultado.success) throw new BadRequestException('El periodo no es válido.');
   return resultado.data;

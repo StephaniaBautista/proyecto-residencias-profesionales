@@ -6,7 +6,37 @@ import {
   interpretarJsonModelo,
   respuestaAbstencion,
   respuestaConEvidencia,
+  type FragmentoRecuperado,
 } from './respuesta';
+
+const fragmentos: FragmentoRecuperado[] = [
+  {
+    documento: 'Programa de Tutorías del TecNM',
+    emisor: 'Tecnológico Nacional de México; marco general',
+    version: '2022',
+    fecha_documento: '2022-01-01',
+    vigencia_verificada: false,
+    permisos: 'uso interno',
+    url: null,
+    numero: 3,
+    pagina: 12,
+    texto: 'El tutor da seguimiento a los acuerdos.',
+    similitud: 0.72,
+  },
+  {
+    documento: 'Manual del Tutor del SNIT',
+    emisor: 'SNIT / TecNM; referencia histórica',
+    version: null,
+    fecha_documento: null,
+    vigencia_verificada: true,
+    permisos: 'uso interno',
+    url: 'https://www.tecnm.mx/manual-del-tutor.pdf',
+    numero: 8,
+    pagina: null,
+    texto: 'Las funciones del tutor se describen en este manual.',
+    similitud: 0.61,
+  },
+];
 
 describe('recuperación y abstención', () => {
   it('se abstiene si la mejor similitud no llega al umbral', () => {
@@ -28,15 +58,7 @@ describe('recuperación y abstención', () => {
       idEstudiante: 'EST_024',
       nivel: 'rojo',
       indicadores: ['Asistencia menor a 80%'],
-      fragmentos: [
-        {
-          documento: 'Programa de Tutorías del TecNM',
-          numero: 3,
-          pagina: 12,
-          texto: 'El tutor da seguimiento a los acuerdos.',
-          similitud: 0.72,
-        },
-      ],
+      fragmentos,
       textoModelo: {
         evidencia: 'El fragmento habla de seguimiento.',
         explicacion: 'Conviene revisar los acuerdos.',
@@ -44,8 +66,27 @@ describe('recuperación y abstención', () => {
       },
     });
     assert.equal(respuesta.abstencion, false);
-    assert.equal(respuesta.fuentes_rag[0]?.documento, 'Programa de Tutorías del TecNM');
     assert.equal(respuesta.validacion_humana_requerida, true);
+    assert.deepEqual(respuesta.fuentes_rag, [
+      {
+        documento: 'Programa de Tutorías del TecNM',
+        emisor: 'Tecnológico Nacional de México; marco general',
+        version: '2022',
+        vigencia_verificada: false,
+        fragmento: 3,
+        pagina: 12,
+      },
+      {
+        documento: 'Manual del Tutor del SNIT',
+        emisor: 'SNIT / TecNM; referencia histórica',
+        version: null,
+        vigencia_verificada: true,
+        fragmento: 8,
+        pagina: null,
+      },
+    ]);
+    assert.equal('texto' in (respuesta.fuentes_rag[0] ?? {}), false);
+    assert.equal('similitud' in (respuesta.fuentes_rag[0] ?? {}), false);
   });
 
   it('acepta JSON del modelo y rechaza texto sin el contrato', () => {

@@ -1,0 +1,119 @@
+# Integración continua del prototipo de apoyo tutorial ITTLA.
+#
+# Backend: NestJS contra un PostgreSQL 17 con pgvector real (contenedor),
+# compilando y probando primero y aplicando después migraciones y semilla.
+# Frontend: compilación estricta de TypeScript y build de Vite.
+#
+# El paso `npm audit --audit-level=high` se ejecuta en ambos jobs y permite
+# que el fallo quede visible en la pestaña de Actions sin tumbar el resto del
+# pipeline (`continue-on-error`). Hoy existen avisos altos en dependencias
+# transitivas sin corrección disponible; la auditoría debe revisarse antes de
+# cada entrega y no se considera resuelta.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (NestJS + PostgreSQL 17/pgvector)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: apoyo_tutorial
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d apoyo_tutorial"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DEMO_MODE: 'true'
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/apoyo_tutorial
+      JWT_SECRET: clave-de-ci-para-pruebas-de-al-menos-16
+      FRONTEND_ORIGIN: http://localhost:5173
+      PORT: '3000'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar (tsc / nest build)
+        run: npm run build
+
+      - name: Pruebas unitarias
+        run: npm test
+
+      - name: Aplicar migraciones
+        run: npm run migrate
+
+      - name: Cargar dataset sintético de demostración
+        run: npm run seed
+
+      - name: Auditoría de dependencias
+        # El fallo se muestra en Actions (amarillo/rojo) pero no bloquea el job:
+        # hay vulnerabilidades transitivas sin parche disponible.
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  frontend:
+    name: Frontend (React + Vite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar (tsc --noEmit + vite build)
+        run: npm run build
+
+      - name: Auditoría de dependencias
+        # Igual que en backend: visible, sin bloquear el build del frontend.
+        continue-on-error: true
+        run: npm audit --audit-level=high

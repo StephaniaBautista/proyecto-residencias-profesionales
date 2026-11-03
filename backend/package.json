@@ -1,14 +1,22 @@
 {
   "name": "apoyo-tutorial-api",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
+    "db:local": "bash scripts/db-local.sh start",
+    "db:local:stop": "bash scripts/db-local.sh stop",
+    "db:local:status": "bash scripts/db-local.sh status",
+    "db:local:reset": "bash scripts/db-local.sh reset",
     "migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
     "ingest": "tsx scripts/ingest.ts",
-    "test": "node --import tsx --test src/semaforo/semaforo.test.ts src/ml/modelo.test.ts src/rag/respuesta.test.ts src/rag/fuentes.test.ts"
+    "test": "node --import tsx --test src/semaforo/reglas.test.ts src/ml/modelo.test.ts src/rag/respuesta.test.ts src/rag/fuentes.test.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",

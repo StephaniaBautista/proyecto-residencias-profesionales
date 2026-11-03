@@ -3,11 +3,25 @@ export const MENSAJE_ABSTENCION =
 
 export type FragmentoRecuperado = {
   documento: string;
-  emisor?: string;
+  emisor: string;
+  version: string | null;
+  fecha_documento: string | null;
+  vigencia_verificada: boolean;
+  permisos: string;
+  url: string | null;
   numero: number;
   pagina: number | null;
   texto: string;
   similitud: number;
+};
+
+export type FuenteRespuesta = {
+  documento: string;
+  emisor: string;
+  version: string | null;
+  vigencia_verificada: boolean;
+  fragmento: number;
+  pagina: number | null;
 };
 
 export type RespuestaAgente = {
@@ -17,7 +31,7 @@ export type RespuestaAgente = {
   evidencia: string;
   explicacion: string;
   accion_sugerida: string;
-  fuentes_rag: Array<{ documento: string; fragmento: number; pagina: number | null }>;
+  fuentes_rag: FuenteRespuesta[];
   limitaciones: string;
   validacion_humana_requerida: true;
   abstencion: boolean;
@@ -66,6 +80,9 @@ export function respuestaConEvidencia(params: {
     accion_sugerida: params.textoModelo?.accion_sugerida?.trim() || 'Revisar el fragmento recuperado antes de proponer una acción.',
     fuentes_rag: params.fragmentos.map((fragmento) => ({
       documento: fragmento.documento,
+      emisor: fragmento.emisor,
+      version: fragmento.version,
+      vigencia_verificada: fragmento.vigencia_verificada,
       fragmento: fragmento.numero,
       pagina: fragmento.pagina,
     })),
